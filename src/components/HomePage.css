@@ -1,0 +1,33 @@
+.banner-container {
+    background-size: cover;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  
+  .banner-text {
+    @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@100;300');
+    color: white;
+    font-size: 5rem;
+    font-family: 'Barlow', sans-serif;
+    margin-top: -10rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .order-pizza {
+    background-color: #f7d154;
+    border-radius: 15px;
+    padding: 10px 20px;
+    font-size: 1.8rem;
+    color: white;
+    border: none;
+    margin-top: 0rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  

@@ -1,312 +1,434 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { PizzaContext } from './PizzaContext';
 import axios from 'axios';
+import Header from './Header';
+import './OrderForm.css';
+import * as Yup from 'yup';
 
 
-function OrderForm() {
-  const [name, setName] = useState('');
-  const [nameError, setNameError] = useState('');
-  const [size, setSize] = useState('');
-  const [extraToppings, setExtraToppings] = useState([]);
-  const [quantity, setQuantity] = useState(1);
-  const { setOrderDetails } = useContext(PizzaContext);
+const OrderForm = () => {
+  const [name, setName] = useState("");
+  const [size, setSize] = useState("");
+  const [adet, setAdet] = useState(1);
+  const [toppings, setToppings] = useState([]);
+  const [special, setSpecial] = useState("");
+  const a = 85.5;
+  const [total, setTotal] = useState(85.5);
+  const [secimler, setSecimler] = useState(0.0);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [doughType, setDoughType] = useState("");
+ 
   const history = useHistory();
-  const [hamurTipi, setHamurTipi] = useState('');
-  const [siparisNotu, setSiparisNotu] = useState('');
-  const [orderResponse, setOrderResponse] = useState(null);
 
-  const prices = {
-    S: 0,
-    M: 20,
-    L: 40,
-    extraToppings: {
-      Sucuk: 5,
-      Pepperoni: 5,
-      Mantar: 5,
-      Sosis: 5,
-      'Kanada Jambonu': 5,
-      'Tavuk Izgara': 5,
-      'Soğan': 5,
-      'Domates': 5,
-      'Mısır': 5,
-      'Jalepeno': 5,
-      'Sarımsak': 5,
-      'Biber': 5,
-      'Ananas': 5,
-      'Kabak': 5,
-    },
+  const PizzaFormSchema = Yup.object().shape({
+    name: Yup.string().min(2, "İsim en az 2 karakter olmalıdır"),
+
+    toppings: Yup.array().test(
+      "max-selected",
+      "En fazla 10 seçenek seçilebilir.",
+      (value) => {
+        if (value && value.length > 10) {
+          return false;
+        }
+        return true;
+      }
+    ),
+  });
+
+  const handleNameChange = (e) => {
+    setName(e.target.value);
   };
 
-  const isNameValid = (inputName) => {
-    return inputName.length >= 2;
+
+  const handleDoughTypeChange = (e) => {
+    setDoughType(e.target.value);
+  };
+  const handleSizeChange = (e) => {
+    setSize(e.target.value);
   };
 
-  const totalToppingsPrice = extraToppings.reduce((total, topping) => {
-    return total + prices.extraToppings[topping];
-  }, 0);
-  const sizePrice = prices[size] || 0;
-  const totalPrice = (sizePrice + totalToppingsPrice) * quantity + 79;
+  const handleAdetChange = (newAdet) => {
+    setAdet(newAdet);
 
-  const handleSubmit = async (e) => {
+    let secimler = toppings.length * newAdet * 5;
+    setSecimler(secimler);
+
+    let total = (a + toppings.length * 5) * newAdet;
+    setTotal(total);
+  };
+
+  const handleToppingsChange = (e) => {
+    const selectedToppings = Array.from(
+      document.querySelectorAll('input[name="toppings"]:checked')
+    ).map((input) => input.value);
+    setToppings(selectedToppings);
+
+    let secimler = selectedToppings.length * adet * 5;
+    setSecimler(secimler);
+  };
+
+  useEffect(() => {
+    let newTotal = (a + toppings.length * 5) * adet;
+    setTotal(newTotal);
+  }, [adet, toppings]);
+
+  function handleSpecialChange(e) {
+    setSpecial(e.target.value);
+  }
+
+  
+  const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!isNameValid(name)) {
-      setNameError('İsim en az 2 karakter olmalıdır');
-      return;
-    } else {
-      setNameError('');
-    }
+    PizzaFormSchema.validate({ name, toppings })
+      .then(() => {
+        const order = {
+          name,
+          size,
+          toppings,
+          special,
+          Fiyat: total,
+          adet,
+        };
 
-    const orderData = {
-        pizzaSize: size,
-        toppings: extraToppings,
-        quantity: quantity,
-        hamurTipi: hamurTipi,
-        siparisNotu: siparisNotu,
-        totalPrice: totalPrice,
-      };
-    
-      try {
-        const response = await axios.post('https://reqres.in/api/orders', orderData);
-        setOrderResponse(response.data);
-        console.log(response.data);
-      } catch (error) {
-        console.error('Sipariş gönderilirken hata oluştu:', error);
-      }
-    
-      localStorage.setItem('orderDetails', JSON.stringify(orderData));
-      setOrderDetails(orderData);
-      history.push('/onay');
-    };
-  const handleToppingChange = (event) => {
-    const { value, checked } = event.target;
-    if (checked) {
-      setExtraToppings((prevToppings) => [...prevToppings, value]);
-    } else {
-      setExtraToppings((prevToppings) =>
-        prevToppings.filter((topping) => topping !== value)
-      );
-    }
+        axios
+          .post("https://reqres.in/api/users", order)
+          .then((response) => {
+            console.log("Sipariş başarıyla gönderildi:", response);
+            setName("");
+            setSize("");
+            setToppings([]);
+            setSpecial("");
+            history.push("/onay");
+          })
+          .catch((error) => {
+            console.error("Sipariş gönderilirken hata oluştu:", error);
+          });
+      })
+      
+      
+      
   };
 
-
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Pizza Siparişi</h2>
-      <div>
-        <label htmlFor="name-input">İsim:</label>
-        <input
-          type="text"
-          id="name-input"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        {nameError && <div>{nameError}</div>}
+    <>
+      <div className="container2">
+        <div className="header">
+        <Header />
+        </div>
       </div>
-      <div>
-        <label htmlFor="size">Pizza Boyutu:</label>
+      <div className="siparis-body">
+        <br />
+        <h2>Position Absolute Acı Pizza</h2>
+        <br />
+        <h3>85,50 ₺</h3>
+        <p>
+          Frontend Dev olarak hala position:absolute kullanıyorsan bu çok acı
+          pizza tam sana göre. Pizza, domates, peynir ve genellikle çeşitli
+          diğer malzemelerle kaplanmış, daha sonra geleneksel olarak odun
+          ateşinde bir fırında yüksek sıcaklıkta pişirilen, genellikle yuvarlak,
+          düzleştirilmiş mayalı buğday bazlı hamurdan oluşan İtalyan kökenli
+          lezzetli bir yemektir.. Küçük bir pizzaya bazen pizzetta denir.
+        </p>
+        <br />
+        <form id="pizza-form" onSubmit={handleSubmit}>
+          <label htmlFor="name-input">
+            <b>
+              İsim Soyisim <span className="required">*</span>
+            </b>{" "}
+          </label>
+          <input
+  type="text"
+  id="name-input"
+  name="name-input"
+  value={name}
+  onChange={handleNameChange}
+  required
+  minLength={2}
+/>
+<p className="error-message">{errorMessage}</p>
+          <br />
+          <br />
+          <div className="size-dough-options">
+      <div className="size-option">
+        <label htmlFor="size-dropdown">
+          <b>
+          Boyut Seç<span className="required">*</span>{" "}
+          </b>
+        </label>
+        <label htmlFor="size-small">
+  <input
+    type="radio"
+    id="size-small"
+    name="size"
+    value="small"
+    onChange={handleSizeChange}
+    required
+  />
+  Küçük
+</label>
+<label htmlFor="size-medium">
+  <input
+    type="radio"
+    id="size-medium"
+    name="size"
+    value="medium"
+    onChange={handleSizeChange}
+    required
+  />
+  Orta
+</label>
+<label htmlFor="size-large">
+  <input
+    type="radio"
+    id="size-large"
+    name="size"
+    value="large"
+    onChange={handleSizeChange}
+    required
+  />
+  Büyük
+</label>
+      </div>
+
+      <div className="dough-option">
+        <label htmlFor="dough-dropdown">
+         <b>Hamur Seç<span className="required">*</span>{" "}</b>
+        </label>
         <select
-          id="size"
-          value={size}
-          onChange={(e) => setSize(e.target.value)}
+          id="dough-dropdown"
+          value={doughType}
+          name="dough-dropdown"
+          onChange={handleDoughTypeChange}
+          required
         >
-          <option value="">Seçiniz</option>
-          <option value="S">S</option>
-          <option value="M">M</option>
-          <option value="L">L</option>
+          <option value="">Hamur Kalınlığı</option>
+          <option value="superthin">İncecik</option>
+          <option value="thin">İnce</option>
+          <option value="thick">Kalın</option>
         </select>
       </div>
-
-
-
-
-      <div>
-  <label htmlFor="hamur">Hamur Seçimi:</label>
-  <select id="hamur" value={hamurTipi} onChange={(e) => setHamurTipi(e.target.value)}>
-    <option value="">Seçiniz</option>
-    <option value="Süper İnce">Süper İnce</option>
-    <option value="İnce">İnce</option>
-    <option value="Normal">Normal</option>
-  </select>
-</div>
-      <div>
-        <label>Ekstra Malzemeler:</label>
-       
-        
-        <div>
-            <div>
-
-          <input
-            type="checkbox"
-            id="Sucuk"
-            value="Sucuk"
-            checked={extraToppings.includes('Sucuk')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Sucuk">Sucuk</label>
-          </div>
-          
-          <div>
-          <input
-            type="checkbox"
-            id="Pepperoni"
-            value="Pepperoni"
-            checked={extraToppings.includes('Pepperoni')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Pepperoni">Pepperoni</label>
-        </div>
-        <div>
-          <input
-            type="checkbox"
-            id="Mantar"
-            value="Mantar"
-            checked={extraToppings.includes('Mantar')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Mantar">Mantar</label>
-        </div>
-
-          <div>
-          <input
-            type="checkbox"
-            id="Sosis"
-            value="Sosis"
-            checked={extraToppings.includes('Sosis')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Sosis">Sosis</label>
-        </div>
-        <div>
-          <input
-            type="checkbox"
-            id="KanadaJambonu"
-            value="Kanada Jambonu"
-            checked={extraToppings.includes('Kanada Jambonu')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="KanadaJambonu">Kanada Jambonu</label>
-        </div>
-        <div>
-          <input
-            type="checkbox"
-            id="TavukIzgara"
-            value="Tavuk Izgara"
-            checked={extraToppings.includes('Tavuk Izgara')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="TavukIzgara">Tavuk Izgara</label>
-        </div>
-        <div>
-          <input
-            type="checkbox"
-            id="Sogan"
-            value="Soğan"
-            checked={extraToppings.includes('Soğan')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Sogan">Soğan</label>
-        </div>
-        <div>
-          <input
-            type="checkbox"
-            id="Domates"
-            value="Domates"
-            checked={extraToppings.includes('Domates')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Domates">Domates</label>
-        </div>
-        <div>
-          <input
-            type="checkbox"
-            id="Misir"
-            value="Mısır"
-            checked={extraToppings.includes('Mısır')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Misir">Mısır</label>
-        </div>
-        <div>
-          <input
-            type="checkbox"
-            id="Jalepeno"
-            value="Jalepeno"
-            checked={extraToppings.includes('Jalepeno')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Jalepeno">Jalepeno</label>
-        </div>
-        <div>
-          <input
-            type="checkbox"
-            id="Sarımsak"
-            value="Sarımsak"
-            checked={extraToppings.includes('Sarımsak')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Sarımsak">Sarımsak</label>
-        </div>
-        <div>
-          <input
-            type="checkbox"
-            id="Biber"
-            value="Biber"
-            checked={extraToppings.includes('Biber')}
-            onChange={handleToppingChange}
-          />
-          <label htmlFor="Biber">Biber</label>
-          </div>
-          
-    <div>
-      <input
-        type="checkbox"
-        id="Ananas"
-        value="Ananas"
-        checked={extraToppings.includes('Ananas')}
-        onChange={handleToppingChange}
-      />
-      <label htmlFor="Ananas">Ananas</label>
     </div>
-    <div>
-      <input
-        type="checkbox"
-        id="Kabak"
-        value="Kabak"
-        checked={extraToppings.includes('Kabak')}
-        onChange={handleToppingChange}
-      />
-      <label htmlFor="Kabak">Kabak</label>
-    </div>
-  </div>
-        
-        {/* Buraya daha fazla ekstra malzeme ekleyebilirsiniz. */}
-      </div>
-      <div>
-  <label htmlFor="siparisNotu">Sipariş Notu:</label>
-  <textarea id="siparisNotu" value={siparisNotu} onChange={(e) => setSiparisNotu(e.target.value)} />
-</div>
-      <div>
-        <label htmlFor="quantity">Adet:</label>
-        <input
-  type="number"
-  id="quantity"
-  min="1"
-  max="10"
-  value={quantity}
-  onChange={(e) => setQuantity(parseInt(e.target.value))}
-/>
-      </div>
-      <div>
-      <div>
-  <label>Toplam Fiyat: {isNaN(totalPrice) === 0 ? "Seçim Yapılmadı" : totalPrice + " TL"}</label>
-</div>
+          <br />
+          <br />
+          <label htmlFor="toppings-checkboxes">
+            <b>
+              Ek Malzemeler<span className="required">*</span>
+            </b>
+          </label>{" "}
+          <p>En Fazla 10 malzeme seçebilirsiniz. 5₺</p>
+          <br />
+          <div id="toppings-checkboxes">
+            <label htmlFor="pepperoni-checkbox">
+              <input
+                type="checkbox"
+                name="toppings"
+                value="pepperoni"
+                onChange={handleToppingsChange}
+              />
+              Pepperoni
+            </label>
+            <label htmlFor="mushrooms-checkbox">
+              <input
+                type="checkbox"
+                name="toppings"
+                value="mushrooms"
+                onChange={handleToppingsChange}
+              />
+              Mantar
+            </label>
+            <label htmlFor="olives-checkbox">
+              <input
+                type="checkbox"
+                name="toppings"
+                value="olives"
+                onChange={handleToppingsChange}
+              />
+              Zeytin
+            </label>
+            <label htmlFor="sausage-checkbox">
+              <input
+                type="checkbox"
+                name="toppings"
+                value="sausage"
+                onChange={handleToppingsChange}
+              />
+              Sosis
+            </label>
+            <label htmlFor="domates-checkbox">
+              <input
+                type="checkbox"
+                name="toppings"
+                value="domates"
+                onChange={handleToppingsChange}
+              />
+              Domates
+            </label>
+            <label htmlFor="biber-checkbox">
+              <input
+                type="checkbox"
+                name="toppings"
+                value="biber"
+                onChange={handleToppingsChange}
+              />
+              Biber
+            </label>
+            <label htmlFor="kanada-jambonu-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="kanada-jambonu"
+      onChange={handleToppingsChange}
+    />
+    Kanada Jambonu
+  </label>
+  <label htmlFor="tavuk-izgara-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="tavuk-izgara"
+      onChange={handleToppingsChange}
+    />
+    Tavuk Izgara
+  </label>
+  <label htmlFor="sogan-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="sogan"
+      onChange={handleToppingsChange}
+    />
+    Soğan
+  </label>
+  <label htmlFor="domates-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="domates"
+      onChange={handleToppingsChange}
+    />
+    Domates
+  </label>
+  <label htmlFor="misir-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="misir"
+      onChange={handleToppingsChange}
+    />
+    Mısır
+  </label>
+  <label htmlFor="jalepeno-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="jalepeno"
+      onChange={handleToppingsChange}
+    />
+    Jalepeno
+  </label>
+  <label htmlFor="sarımsak-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="sarimsak"
+      onChange={handleToppingsChange}
+    />
+    Sarımsak
+  </label>
+  <label htmlFor="biber-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="biber"
+      onChange={handleToppingsChange}
+    />
+    Biber
+  </label>
+  <label htmlFor="ananas-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="ananas"
+      onChange={handleToppingsChange}
+    />
+    Ananas
+  </label>
+  <label htmlFor="kabak-checkbox">
+    <input
+      type="checkbox"
+      name="toppings"
+      value="kabak"
+      onChange={handleToppingsChange}
+    />
+    Kabak
+  </label>
+          </div>
+          <br />
+          <br />
+          <label htmlFor="special-text">Sipariş Notu</label>
+          <br />
+          <br />
+          <input
+            type="text"
+            id="special-text"
+            name="special-text"
+            value={special}
+            onChange={handleSpecialChange}
+            placeholder="Siparişine eklemek istediğin bir not var mı?"
+          />
+          <br />
+          <br />
+          <div className="duz"></div>
+          <br />
+          <div className="general-qty">
+            <div className="qty-of-order">
+              <button
+                className="minus-button"
+                type="button"
+                onClick={() => {
+                  if (adet > 1) {
+                    handleAdetChange(adet - 1);
+                  }
+                }}
+              >
+                -
+              </button>
 
+              <div className="quantitybox">
+                <span className="quantity">{adet}</span>
+              </div>
+
+              <button
+                className="plus-button"
+                type="button"
+                onClick={() => handleAdetChange(adet + 1)}
+              >
+                +
+              </button>
+            </div>
+
+            <div className="order">
+              <div>Sipariş Toplamı</div>
+              <div className="choices">
+                {" "}
+                <span>Seçimler:</span> <span>{secimler} ₺</span>
+              </div>
+              <div className="choices" style={{ color: " #ce2829" }}>
+                <span>Toplam:</span> <span>{total} ₺</span>
+              </div>
+
+              <button id="order-button" type="submit">
+                SİPARİŞ VER
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
-      <button type="submit" id="order-button">Sipariş Onayı</button>
-    </form>
+
+     
+    </>
   );
-}
+};
 
 export default OrderForm;

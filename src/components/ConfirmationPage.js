@@ -1,22 +1,23 @@
-import React, { useContext } from 'react';
-import { PizzaContext } from './PizzaContext';
+import React from 'react';
+import Header from './Header';
+import './ConfirmationPage.css';
 
 const ConfirmationPage = () => {
-  const { orderDetails } = useContext(PizzaContext);
-  const { pizzaSize, toppings, quantity,hamurTipi,siparisNotu} = orderDetails;
+ 
+
+ 
+
 
   return (
     <div>
-      <h1>Onay Sayfası</h1>
-      <h2>Sipariş Detayları</h2>
-      <p>Pizza Boyutu: {pizzaSize}</p>
-      <p>Ekstra Malzemeler: {toppings.join(', ')}</p>
-      <p>Adet: {quantity}</p>
-      <p>Hamur Seçimi: {hamurTipi}</p>
-      <p>Sipariş Notu: {siparisNotu}</p>
+      <Header />
+      <div className="confirmation-container">
+        <h1 className="confirmation-title">TEBRİKLER!</h1>
+        <h2 className="confirmation-subtitle">SİPARİŞİNİZ ALINDI!</h2>
+        
+      </div>
     </div>
   );
 };
 
 export default ConfirmationPage;
-

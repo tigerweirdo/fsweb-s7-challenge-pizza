@@ -1,0 +1,28 @@
+
+.confirmation-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #ce2829;
+  min-height: 100vh;
+  padding-top: 1rem;
+  font-family: "Barlow"
+
+}
+
+.confirmation-title,
+.confirmation-subtitle {
+  color: white;
+  font-size: 3rem;
+}
+
+.details-button {
+  margin-top: 1rem;
+  padding: 10px 20px;
+  background-color: white;
+  color: #ce2829;
+  font-size: 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
