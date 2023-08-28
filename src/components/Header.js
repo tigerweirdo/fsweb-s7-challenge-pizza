@@ -20,7 +20,7 @@ const Title = styled.h1`
 const Header = () => {
   return (
     <StyledHeader>
-      <Title>Tek Pizza</Title>
+      <Title>CosmoPizza</Title>
     </StyledHeader>
   );
 };

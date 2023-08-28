@@ -14,9 +14,8 @@ const HomePage = () => {
         }}
       >
         <h2 className="banner-text">
-          Kod acıktırır
-          <br />
-          Pizza doyurur
+        Gerçeklikten Daha Lezzetli
+         
         </h2>
         <Link to="/pizza" style={{ textDecoration: 'none' }}>
           <button
